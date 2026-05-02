@@ -1,3 +1,9 @@
+if _G.Aimbot then
+    warn("Script đã chạy! Không thể chạy lại.")
+    return
+end
+_G.Aimbot = true
+
 local AimbotScript = Instance.new("ScreenGui")
 AimbotScript.Name = "AimbotScript"
 AimbotScript.ResetOnSpawn = false
@@ -573,16 +579,21 @@ local function Cleanup()
         crosshairGui:Destroy()
         crosshairGui = nil
     end
+
+    _G.Aimbot = nil
 end
 
 local function closeUI()
-	-- Tắt toàn bộ trạng thái
+	-- reset flag TRƯỚC
+	_G.Aimbot = nil
+
+	-- Tắt trạng thái
 	silentAimEnabled = false
 	autoClickEnabled = false
 	isKeyHeld = false
 	settingKey = false
 
-	-- Cleanup hệ thống
+	-- Cleanup
 	Cleanup()
 
 	-- Xoá UI
