@@ -889,13 +889,33 @@ local function DoClick()
 	VirtualInputManager:SendMouseButtonEvent(m.X, m.Y, 0, false, game, 0)
 end
 
+local spamState = false
+
 local function UpdateAutoClick(target)
 	if not autoClickEnabled then
-		if holding then
+		local m = UserInputService:GetMouseLocation()
+	
+		if holding or spamState then
 			local m = UserInputService:GetMouseLocation()
-			VirtualInputManager:SendMouseButtonEvent(m.X, m.Y, 0, false, game, 0)
+		
+			VirtualInputManager:SendMouseButtonEvent(
+				m.X,
+				m.Y,
+				0,
+				false,
+				game,
+				0
+			)
+		
 			holding = false
+			spamState = false
 		end
+	
+		if spamState then
+			VirtualInputManager:SendMouseButtonEvent(m.X, m.Y, 0, false, game, 0)
+			spamState = false
+		end
+	
 		return
 	end
 
@@ -911,9 +931,38 @@ local function UpdateAutoClick(target)
 			holding = false
 		end
 	else
-		if isAiming and tick() - lastClick >= clickDelay then
-			lastClick = tick()
-			DoClick()
+		if isAiming then
+			if tick() - lastClick >= clickDelay then
+				lastClick = tick()
+	
+				local m = UserInputService:GetMouseLocation()
+	
+				spamState = not spamState
+	
+				VirtualInputManager:SendMouseButtonEvent(
+					m.X,
+					m.Y,
+					0,
+					spamState,
+					game,
+					0
+				)
+			end
+		else
+			if spamState then
+				local m = UserInputService:GetMouseLocation()
+	
+				VirtualInputManager:SendMouseButtonEvent(
+					m.X,
+					m.Y,
+					0,
+					false,
+					game,
+					0
+				)
+	
+				spamState = false
+			end
 		end
 	end
 end
