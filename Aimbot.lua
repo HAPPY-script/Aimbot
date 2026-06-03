@@ -502,14 +502,14 @@ local aimMode = "free" -- free / obscure / dis free / dis obscure
 local autoClickEnabled = false
 local autoClickMode = "Spam" -- "Spam" / "Hold"
 local autoClickDownAt = 0
-local spamCooldown = 0.08
+local spamCooldown = 0.03
 
 local settingKey = false
 local settingKeyToken = 0
 local isKeyHeld = false
 local autoClickPressed = false
 local lastClick = 0
-local clickDelay = 0.08
+local clickDelay = 0.03
 local holding = false
 
 VirtualUser:CaptureController()
