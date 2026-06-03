@@ -497,7 +497,7 @@ local selectedTeam = nil
 local silentAimEnabled = false
 local selectedKey = nil
 local currentTarget = nil
-local aimMode = "free" -- "free" / "obscure"
+local aimMode = "free" -- free / obscure / dis free / dis obscure
 
 local autoClickEnabled = false
 local autoClickMode = "Spam" -- "Spam" / "Hold"
@@ -721,7 +721,7 @@ local function setToggleAutoVisual(state)
 end
 
 local function updateModeText()
-	fadeSwapText(ModeButton, aimMode == "free" and "Free" or "obscure", 1)
+	fadeSwapText(ModeButton, aimMode, 1)
 end
 
 local function updateModeAutoText()
@@ -1094,10 +1094,23 @@ local function bindUI()
 		beginKeySelect()
 	end)
 
-	ModeButton.MouseButton1Click:Connect(function()
-		aimMode = (aimMode == "free") and "obscure" or "free"
-		updateModeText()
-	end)
+    ModeButton.MouseButton1Click:Connect(function()
+
+        if aimMode == "free" then
+            aimMode = "obscure"
+
+        elseif aimMode == "obscure" then
+            aimMode = "dis free"
+
+        elseif aimMode == "dis free" then
+            aimMode = "dis obscure"
+
+        else
+            aimMode = "free"
+        end
+
+        updateModeText()
+    end)
 
 	ModeAutoButton.MouseButton1Click:Connect(function()
 		autoClickMode = (autoClickMode == "Spam") and "Hold" or "Spam"
@@ -1183,9 +1196,9 @@ local function bindUI()
 				local screenDistance = (screenPosition - crosshairPosition).Magnitude
 
 				if screenDistance <= maxRadius then
-					if aimMode == "obscure" and not IsHeadVisible(character, head) then
-						continue
-					end
+                    if (aimMode == "obscure") and not IsHeadVisible(character, head) then
+                        continue
+                    end
 
 					if screenDistance < closestScreenDistance then
 						closestScreenDistance = screenDistance
@@ -1198,9 +1211,68 @@ local function bindUI()
 		return closestPlayer
 	end
 
-	local function GetClosestTarget()
-		return GetClosestPlayerHeadInRange()
-	end
+    local function GetClosestPlayerByDistance()
+
+        local myChar = player.Character
+        local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
+
+        if not myRoot then
+            return nil
+        end
+
+        local closestPlayer = nil
+        local closestDistance = math.huge
+
+        for _, otherPlayer in ipairs(Players:GetPlayers()) do
+
+            if otherPlayer == player then
+                continue
+            end
+
+            if selectedTeam and otherPlayer.Team ~= selectedTeam then
+                continue
+            end
+
+            local character = otherPlayer.Character
+            if not character then
+                continue
+            end
+
+            local humanoid = character:FindFirstChild("Humanoid")
+            local head = character:FindFirstChild("Head")
+            local root = character:FindFirstChild("HumanoidRootPart")
+
+            if not humanoid or humanoid.Health <= 0 then
+                continue
+            end
+
+            if not head or not root then
+                continue
+            end
+
+            if aimMode == "dis obscure" and not IsHeadVisible(character, head) then
+                continue
+            end
+
+            local distance = (root.Position - myRoot.Position).Magnitude
+
+            if distance < closestDistance then
+                closestDistance = distance
+                closestPlayer = otherPlayer
+            end
+        end
+
+        return closestPlayer
+    end
+
+    local function GetClosestTarget()
+
+        if aimMode == "dis free" or aimMode == "dis obscure" then
+            return GetClosestPlayerByDistance()
+        end
+
+        return GetClosestPlayerHeadInRange()
+    end
 
 	crosshairGui = Instance.new("ScreenGui")
     local screenGui = crosshairGui
