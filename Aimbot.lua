@@ -489,6 +489,7 @@ local ESP_RATE = 0.08
 
 local aimLine = Drawing.new("Line")
 local greenLines = {}
+local redLines = {}
 
 local mainConnection
 local crosshairConnection
@@ -547,6 +548,13 @@ local function tween(obj, time, props)
 end
 
 local function Cleanup()
+	for _, line in pairs(redLines) do
+		if line then
+			line:Remove()
+		end
+	end
+	table.clear(redLines)
+	
 	if mainConnection then
 		mainConnection:Disconnect()
 		mainConnection = nil
@@ -833,8 +841,16 @@ local function UpdateObstacleLine()
 		end
 	end
 
-	local index = 1
+	for _, line in pairs(redLines) do
+		if line then
+			line.Visible = false
+		end
+	end
+
+	local greenIndex = 1
+	local redIndex = 1
 	local mouseLocation = UserInputService:GetMouseLocation()
+	local fromPos = Vector2.new(mouseLocation.X, mouseLocation.Y)
 
 	for _, otherPlayer in pairs(Players:GetPlayers()) do
 		if otherPlayer == player then
@@ -856,30 +872,34 @@ local function UpdateObstacleLine()
 			continue
 		end
 
-		if not IsHeadVisible(char, head) then
-			continue
-		end
-
 		local screenPoint, onScreen = camera:WorldToViewportPoint(head.Position)
 		if not onScreen then
 			continue
 		end
 
-		local line = greenLines[index]
+		local visible = IsHeadVisible(char, head)
+		local pool = visible and greenLines or redLines
+		local index = visible and greenIndex or redIndex
+
+		local line = pool[index]
 		if not line then
 			line = Drawing.new("Line")
-			greenLines[index] = line
+			pool[index] = line
 		end
 
-		line.From = Vector2.new(mouseLocation.X, mouseLocation.Y)
+		line.From = fromPos
 		line.To = Vector2.new(screenPoint.X, screenPoint.Y)
-		line.Color = Color3.fromRGB(0, 255, 0)
+		line.Color = visible and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
 		line.Thickness = 1
 		line.Transparency = 0.5
 		line.Visible = true
 		line.ZIndex = 1001
 
-		index += 1
+		if visible then
+			greenIndex += 1
+		else
+			redIndex += 1
+		end
 	end
 end
 
