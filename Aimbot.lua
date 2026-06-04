@@ -485,7 +485,7 @@ local playerGui = player:WaitForChild("PlayerGui")
 local visibilityCache = {}
 local VISIBILITY_DELAY = 0.1
 local lastESPUpdate = 0
-local ESP_RATE = 0.08
+local ESP_RATE = 0.05
 
 local aimLine = Drawing.new("Line")
 local greenLines = {}
