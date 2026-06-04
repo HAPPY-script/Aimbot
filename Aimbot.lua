@@ -483,7 +483,7 @@ local camera = workspace.CurrentCamera
 local playerGui = player:WaitForChild("PlayerGui")
 
 local visibilityCache = {}
-local VISIBILITY_DELAY = 0.15
+local VISIBILITY_DELAY = 0.1
 local lastESPUpdate = 0
 local ESP_RATE = 0.08
 
@@ -800,6 +800,27 @@ local function returnToMainFrame()
 	switching = false
 end
 
+local function shouldIgnoreRayPart(part)
+	if not part or not part:IsA("BasePart") then
+		return true
+	end
+
+	if part == camera or (player.Character and part:IsDescendantOf(player.Character)) then
+		return true
+	end
+
+	if part.CanQuery == false then
+		return true
+	end
+
+	-- part vô hình + không va chạm => cho xuyên qua
+	if part.CanCollide == false and part.Transparency >= 1 then
+		return true
+	end
+
+	return false
+end
+
 local function IsHeadVisible(character, head)
 	if not character or not head then
 		return false
@@ -812,18 +833,48 @@ local function IsHeadVisible(character, head)
 	end
 
 	local origin = camera.CFrame.Position
-	local direction = head.Position - origin
+	local targetPos = head.Position
+	local delta = targetPos - origin
+	local remaining = delta.Magnitude
+	if remaining <= 1e-6 then
+		return true
+	end
 
+	local dir = delta.Unit
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Blacklist
 	params.FilterDescendantsInstances = { player.Character, camera }
 	params.IgnoreWater = true
 
-	local result = workspace:Raycast(origin, direction, params)
+	local currentOrigin = origin
+	local maxSkip = 20
 	local visible = false
 
-	if result and result.Instance and result.Instance:IsDescendantOf(character) then
-		visible = true
+	for _ = 1, maxSkip do
+		local result = workspace:Raycast(currentOrigin, dir * remaining, params)
+		if not result then
+			visible = true
+			break
+		end
+
+		local hit = result.Instance
+		if hit and hit:IsDescendantOf(character) then
+			visible = true
+			break
+		end
+
+		if shouldIgnoreRayPart(hit) then
+			local advance = (result.Position - currentOrigin).Magnitude + 0.05
+			currentOrigin += dir * advance
+			remaining = (targetPos - currentOrigin).Magnitude
+			if remaining <= 1e-3 then
+				visible = true
+				break
+			end
+		else
+			visible = false
+			break
+		end
 	end
 
 	visibilityCache[character] = {
