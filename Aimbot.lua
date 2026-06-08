@@ -1,3 +1,5 @@
+-- Aimbot
+--loadstring(game:HttpGet("https://raw.githubusercontent.com/HAPPY-script/Aimbot/refs/heads/main/Aimbot.lua"))()
 if _G.Aimbot then
     warn("Script đã chạy! Không thể chạy lại.")
     return
@@ -933,7 +935,7 @@ local function UpdateObstacleLine()
 
 	for _, otherPlayer in ipairs(Players:GetPlayers()) do
 		if otherPlayer ~= player then
-			if not selectedTeam or otherPlayer.Team == selectedTeam then
+			if shouldIncludePlayer(otherPlayer) then
 				local char = otherPlayer.Character
 				if char and not seenChars[char] then
 					seenChars[char] = true
