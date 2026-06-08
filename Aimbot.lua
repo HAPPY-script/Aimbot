@@ -544,6 +544,24 @@ local NoTeamTemplate = TeamScroll and TeamScroll:WaitForChild("No team")
 
 local crosshairGui
 
+local AUTO_TEAM = "Auto"
+
+local function shouldIncludePlayer(otherPlayer)
+	if selectedTeam == AUTO_TEAM then
+		local myTeam = player.Team
+		if not myTeam then
+			return true
+		end
+		return otherPlayer.Team ~= myTeam
+	end
+
+	if selectedTeam then
+		return otherPlayer.Team == selectedTeam
+	end
+
+	return true
+end
+
 local function tween(obj, time, props)
 	local t = TweenService:Create(obj, TweenInfo.new(time, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), props)
 	t:Play()
@@ -758,7 +776,14 @@ local function updateSelectKeyText(textValue)
 end
 
 local function updateSelectTeamText()
-	fadeSwapText(SelectTeamButton, selectedTeam and selectedTeam.Name or "No team", 1)
+	local text
+	if selectedTeam == AUTO_TEAM then
+		text = "Auto"
+	else
+		text = selectedTeam and selectedTeam.Name or "No team"
+	end
+
+	fadeSwapText(SelectTeamButton, text, 1)
 end
 
 local function setMainVisible(showMain)
@@ -1144,6 +1169,7 @@ local function RefreshTeams()
 		order += 1
 	end
 
+	createTeamButton("Auto", Color3.fromRGB(120, 120, 120), AUTO_TEAM)
 	createTeamButton("No team", NoTeamTemplate.BackgroundColor3, nil)
 
 	for _, team in ipairs(Teams:GetChildren()) do
@@ -1269,7 +1295,7 @@ local function bindUI()
 				continue
 			end
 
-			if selectedTeam and otherPlayer.Team ~= selectedTeam then
+			if not shouldIncludePlayer(otherPlayer) then
 				continue
 			end
 
@@ -1323,9 +1349,9 @@ local function bindUI()
                 continue
             end
 
-            if selectedTeam and otherPlayer.Team ~= selectedTeam then
-                continue
-            end
+			if not shouldIncludePlayer(otherPlayer) then
+				continue
+			end
 
             local character = otherPlayer.Character
             if not character then
