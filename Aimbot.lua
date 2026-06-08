@@ -843,16 +843,11 @@ local function IsHeadVisible(character, head)
 		return false
 	end
 
-	local now = tick()
-	local cached = visibilityCache[character]
-	if cached and (now - cached.time) < VISIBILITY_DELAY then
-		return cached.visible
-	end
-
 	local origin = camera.CFrame.Position
 	local targetPos = head.Position
 	local delta = targetPos - origin
 	local remaining = delta.Magnitude
+
 	if remaining <= 1e-6 then
 		return true
 	end
@@ -864,20 +859,16 @@ local function IsHeadVisible(character, head)
 	params.IgnoreWater = true
 
 	local currentOrigin = origin
-	local maxSkip = 20
-	local visible = false
 
-	for _ = 1, maxSkip do
+	for _ = 1, 20 do
 		local result = workspace:Raycast(currentOrigin, dir * remaining, params)
 		if not result then
-			visible = true
-			break
+			return true
 		end
 
 		local hit = result.Instance
 		if hit and hit:IsDescendantOf(character) then
-			visible = true
-			break
+			return true
 		end
 
 		if shouldIgnoreRayPart(hit) then
@@ -885,21 +876,14 @@ local function IsHeadVisible(character, head)
 			currentOrigin += dir * advance
 			remaining = (targetPos - currentOrigin).Magnitude
 			if remaining <= 1e-3 then
-				visible = true
-				break
+				return true
 			end
 		else
-			visible = false
-			break
+			return false
 		end
 	end
 
-	visibilityCache[character] = {
-		visible = visible,
-		time = now
-	}
-
-	return visible
+	return false
 end
 
 local function UpdateObstacleLine()
@@ -920,15 +904,17 @@ local function UpdateObstacleLine()
 
 	local greenCandidates = {}
 	local redCandidates = {}
+	local seenChars = {}
 
 	for _, otherPlayer in ipairs(Players:GetPlayers()) do
 		if otherPlayer ~= player then
 			if not selectedTeam or otherPlayer.Team == selectedTeam then
 				local char = otherPlayer.Character
-				if char then
+				if char and not seenChars[char] then
+					seenChars[char] = true
+
 					local head = char:FindFirstChild("Head")
 					local humanoid = char:FindFirstChild("Humanoid")
-
 					if head and humanoid and humanoid.Health > 0 then
 						local screenPoint, onScreen = camera:WorldToViewportPoint(head.Position)
 						if onScreen then
@@ -936,11 +922,17 @@ local function UpdateObstacleLine()
 							local toPos = Vector2.new(screenPoint.X, screenPoint.Y)
 							local dist = (toPos - fromPos).Magnitude
 
-							local bucket = visible and greenCandidates or redCandidates
-							bucket[#bucket + 1] = {
-								dist = dist,
-								toPos = toPos,
-							}
+							if visible then
+								greenCandidates[#greenCandidates + 1] = {
+									dist = dist,
+									toPos = toPos,
+								}
+							else
+								redCandidates[#redCandidates + 1] = {
+									dist = dist,
+									toPos = toPos,
+								}
+							end
 						end
 					end
 				end
@@ -956,17 +948,10 @@ local function UpdateObstacleLine()
 		return a.dist < b.dist
 	end)
 
-	local greenCount = math.min(#greenCandidates, MAX_GREEN_LINES)
-	local redCount = math.min(#redCandidates, MAX_RED_LINES)
-
-	for i = 1, greenCount do
+	for i = 1, math.min(#greenCandidates, MAX_GREEN_LINES) do
 		local data = greenCandidates[i]
-		local line = greenLines[i]
-
-		if not line then
-			line = Drawing.new("Line")
-			greenLines[i] = line
-		end
+		local line = greenLines[i] or Drawing.new("Line")
+		greenLines[i] = line
 
 		line.From = fromPos
 		line.To = data.toPos
@@ -977,14 +962,10 @@ local function UpdateObstacleLine()
 		line.ZIndex = 1001
 	end
 
-	for i = 1, redCount do
+	for i = 1, math.min(#redCandidates, MAX_RED_LINES) do
 		local data = redCandidates[i]
-		local line = redLines[i]
-
-		if not line then
-			line = Drawing.new("Line")
-			redLines[i] = line
-		end
+		local line = redLines[i] or Drawing.new("Line")
+		redLines[i] = line
 
 		line.From = fromPos
 		line.To = data.toPos
