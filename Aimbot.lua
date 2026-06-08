@@ -1150,8 +1150,8 @@ local function RefreshTeams()
 	local y = 0
 	local order = 1
 
-	local function createTeamButton(text, color, teamObj)
-		local btn = NoTeamTemplate:Clone()
+	local function createTeamButton(text, color, teamObj, template)
+		local btn = template and template:Clone() or NoTeamTemplate:Clone()
 		btn.Visible = true
 		btn.Text = text
 		btn.BackgroundColor3 = color
@@ -1167,10 +1167,31 @@ local function RefreshTeams()
 
 		y += 40
 		order += 1
+
+		return btn
+	end
+
+	-- dùng luôn template gốc cho No team, không clone thêm
+	do
+		local btn = NoTeamTemplate
+		btn.Visible = true
+		btn.Text = "No team"
+		btn.BackgroundColor3 = btn.BackgroundColor3
+		btn.Position = UDim2.new(0, 0, 0, y)
+		btn.LayoutOrder = order
+		btn.Parent = TeamScroll
+
+		btn.MouseButton1Click:Connect(function()
+			selectedTeam = nil
+			updateSelectTeamText()
+			returnToMainFrame()
+		end)
+
+		y += 40
+		order += 1
 	end
 
 	createTeamButton("Auto", Color3.fromRGB(120, 120, 120), AUTO_TEAM)
-	createTeamButton("No team", NoTeamTemplate.BackgroundColor3, nil)
 
 	for _, team in ipairs(Teams:GetChildren()) do
 		if team:IsA("Team") then
