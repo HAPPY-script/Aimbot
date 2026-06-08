@@ -487,6 +487,9 @@ local VISIBILITY_DELAY = 0.1
 local lastESPUpdate = 0
 local ESP_RATE = 0.05
 
+local MAX_GREEN_LINES = 20
+local MAX_RED_LINES = 20
+
 local aimLine = Drawing.new("Line")
 local greenLines = {}
 local redLines = {}
@@ -554,7 +557,21 @@ local function Cleanup()
 		end
 	end
 	table.clear(redLines)
-	
+
+    for i = 1, MAX_GREEN_LINES do
+        if greenLines[i] then
+            greenLines[i]:Remove()
+            greenLines[i] = nil
+        end
+    end
+
+    for i = 1, MAX_RED_LINES do
+        if redLines[i] then
+            redLines[i]:Remove()
+            redLines[i] = nil
+        end
+    end
+
 	if mainConnection then
 		mainConnection:Disconnect()
 		mainConnection = nil
@@ -886,71 +903,96 @@ local function IsHeadVisible(character, head)
 end
 
 local function UpdateObstacleLine()
-	for _, line in pairs(greenLines) do
-		if line then
-			line.Visible = false
+	for i = 1, MAX_GREEN_LINES do
+		if greenLines[i] then
+			greenLines[i].Visible = false
 		end
 	end
 
-	for _, line in pairs(redLines) do
-		if line then
-			line.Visible = false
+	for i = 1, MAX_RED_LINES do
+		if redLines[i] then
+			redLines[i].Visible = false
 		end
 	end
 
-	local greenIndex = 1
-	local redIndex = 1
 	local mouseLocation = UserInputService:GetMouseLocation()
 	local fromPos = Vector2.new(mouseLocation.X, mouseLocation.Y)
 
-	for _, otherPlayer in pairs(Players:GetPlayers()) do
-		if otherPlayer == player then
-			continue
+	local greenCandidates = {}
+	local redCandidates = {}
+
+	for _, otherPlayer in ipairs(Players:GetPlayers()) do
+		if otherPlayer ~= player then
+			if not selectedTeam or otherPlayer.Team == selectedTeam then
+				local char = otherPlayer.Character
+				if char then
+					local head = char:FindFirstChild("Head")
+					local humanoid = char:FindFirstChild("Humanoid")
+
+					if head and humanoid and humanoid.Health > 0 then
+						local screenPoint, onScreen = camera:WorldToViewportPoint(head.Position)
+						if onScreen then
+							local visible = IsHeadVisible(char, head)
+							local toPos = Vector2.new(screenPoint.X, screenPoint.Y)
+							local dist = (toPos - fromPos).Magnitude
+
+							local bucket = visible and greenCandidates or redCandidates
+							bucket[#bucket + 1] = {
+								dist = dist,
+								toPos = toPos,
+							}
+						end
+					end
+				end
+			end
 		end
+	end
 
-		if selectedTeam and otherPlayer.Team ~= selectedTeam then
-			continue
-		end
+	table.sort(greenCandidates, function(a, b)
+		return a.dist < b.dist
+	end)
 
-		local char = otherPlayer.Character
-		if not char then
-			continue
-		end
+	table.sort(redCandidates, function(a, b)
+		return a.dist < b.dist
+	end)
 
-		local head = char:FindFirstChild("Head")
-		local humanoid = char:FindFirstChild("Humanoid")
-		if not head or not humanoid or humanoid.Health <= 0 then
-			continue
-		end
+	local greenCount = math.min(#greenCandidates, MAX_GREEN_LINES)
+	local redCount = math.min(#redCandidates, MAX_RED_LINES)
 
-		local screenPoint, onScreen = camera:WorldToViewportPoint(head.Position)
-		if not onScreen then
-			continue
-		end
+	for i = 1, greenCount do
+		local data = greenCandidates[i]
+		local line = greenLines[i]
 
-		local visible = IsHeadVisible(char, head)
-		local pool = visible and greenLines or redLines
-		local index = visible and greenIndex or redIndex
-
-		local line = pool[index]
 		if not line then
 			line = Drawing.new("Line")
-			pool[index] = line
+			greenLines[i] = line
 		end
 
 		line.From = fromPos
-		line.To = Vector2.new(screenPoint.X, screenPoint.Y)
-		line.Color = visible and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+		line.To = data.toPos
+		line.Color = Color3.fromRGB(0, 255, 0)
 		line.Thickness = 1
 		line.Transparency = 0.5
 		line.Visible = true
 		line.ZIndex = 1001
+	end
 
-		if visible then
-			greenIndex += 1
-		else
-			redIndex += 1
+	for i = 1, redCount do
+		local data = redCandidates[i]
+		local line = redLines[i]
+
+		if not line then
+			line = Drawing.new("Line")
+			redLines[i] = line
 		end
+
+		line.From = fromPos
+		line.To = data.toPos
+		line.Color = Color3.fromRGB(255, 0, 0)
+		line.Thickness = 1
+		line.Transparency = 0.5
+		line.Visible = true
+		line.ZIndex = 1001
 	end
 end
 
