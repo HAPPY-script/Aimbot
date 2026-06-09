@@ -1,5 +1,3 @@
--- Aimbot
---loadstring(game:HttpGet("https://raw.githubusercontent.com/HAPPY-script/Aimbot/refs/heads/main/Aimbot.lua"))()
 if _G.Aimbot then
     warn("Script đã chạy! Không thể chạy lại.")
     return
