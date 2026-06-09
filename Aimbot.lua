@@ -544,6 +544,20 @@ local NoTeamTemplate = TeamScroll and TeamScroll:WaitForChild("No team")
 
 local crosshairGui
 
+local function HideObstacleLines()
+	for _, line in pairs(greenLines) do
+		if line then
+			line.Visible = false
+		end
+	end
+
+	for _, line in pairs(redLines) do
+		if line then
+			line.Visible = false
+		end
+	end
+end
+
 local AUTO_TEAM = "Auto"
 
 local function shouldIncludePlayer(otherPlayer)
@@ -912,6 +926,11 @@ local function IsHeadVisible(character, head)
 end
 
 local function UpdateObstacleLine()
+	if not silentAimEnabled then
+		HideObstacleLines()
+		return
+	end
+
 	for i = 1, MAX_GREEN_LINES do
 		if greenLines[i] then
 			greenLines[i].Visible = false
@@ -1258,10 +1277,14 @@ local function bindUI()
 		updateModeAutoText()
 	end)
 
-	ToggleButton.MouseButton1Click:Connect(function()
-		silentAimEnabled = not silentAimEnabled
-		setToggleVisual(silentAimEnabled)
-	end)
+    ToggleButton.MouseButton1Click:Connect(function()
+        silentAimEnabled = not silentAimEnabled
+        setToggleVisual(silentAimEnabled)
+
+        if not silentAimEnabled then
+            HideObstacleLines()
+        end
+    end)
 
 	ToggleAutoButton.MouseButton1Click:Connect(function()
 		autoClickEnabled = not autoClickEnabled
@@ -1444,21 +1467,23 @@ local function bindUI()
 		verticalBar.Position = UDim2.new(0, mousePosition.X, 0, mousePosition.Y)
 	end
 
-	mainConnection = RunService.RenderStepped:Connect(function()
-		local now = tick()
+    mainConnection = RunService.RenderStepped:Connect(function()
+        local now = tick()
 
-		if now - lastESPUpdate >= ESP_RATE then
-			lastESPUpdate = now
-			UpdateObstacleLine()
-		end
+        if silentAimEnabled and now - lastESPUpdate >= ESP_RATE then
+            lastESPUpdate = now
+            UpdateObstacleLine()
+        elseif not silentAimEnabled then
+            HideObstacleLines()
+        end
 
-		currentTarget = GetClosestTarget()
-		local isAiming = silentAimEnabled and isKeyHeld and currentTarget ~= nil
+        currentTarget = GetClosestTarget()
+        local isAiming = silentAimEnabled and isKeyHeld and currentTarget ~= nil
 
-		AimAtPlayerHead(currentTarget)
-		UpdateAutoClick(currentTarget)
-		UpdateAimLine(currentTarget)
-		updateCrosshairPosition()
+        AimAtPlayerHead(currentTarget)
+        UpdateAutoClick(currentTarget)
+        UpdateAimLine(currentTarget)
+        updateCrosshairPosition()
 
 		if isAiming then
 			horizontalBar.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
