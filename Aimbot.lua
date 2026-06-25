@@ -1200,7 +1200,15 @@ local function AimAtPlayerHead(targetPlayer)
 end
 
 local function UpdateAimLine(targetPlayer)
-	if not aimLine then return end
+
+	if not rayEnabled then
+		aimLine.Visible = false
+		return
+	end
+
+	if not aimLine then
+		return
+	end
 
 	if not silentAimEnabled or not targetPlayer or not targetPlayer.Character then
 		aimLine.Visible = false
@@ -1333,14 +1341,18 @@ end
 local function bindUI()
 	UpdateRayButton()
 	
-	RayButton.MouseButton1Click:Connect(function()
-		rayEnabled = not rayEnabled
-		UpdateRayButton()
-	
-		if not rayEnabled then
-			HideObstacleLines()
-		end
-	end)
+    RayButton.MouseButton1Click:Connect(function()
+        rayEnabled = not rayEnabled
+        UpdateRayButton()
+
+        if not rayEnabled then
+            HideObstacleLines()
+
+            if aimLine then
+                aimLine.Visible = false
+            end
+        end
+    end)
 	
 	setToggleVisual(false)
 	setToggleAutoVisual(false)
@@ -1590,7 +1602,11 @@ local function bindUI()
 
         AimAtPlayerHead(currentTarget)
         UpdateAutoClick(currentTarget)
-        UpdateAimLine(currentTarget)
+        if rayEnabled then
+            UpdateAimLine(currentTarget)
+        elseif aimLine then
+            aimLine.Visible = false
+        end
         updateCrosshairPosition()
 
 		if isAiming then
