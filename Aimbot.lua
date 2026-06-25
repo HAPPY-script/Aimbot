@@ -366,6 +366,22 @@ WhiteFrame2.AnchorPoint = Vector2.new(1, 0)
 WhiteFrame2.Transparency = 1
 WhiteFrame2.Parent = Main
 
+local Support = Instance.new("TextButton")
+Support.Name = "Support"
+Support.Position = UDim2.new(0, 0, 0, 110)
+Support.Size = UDim2.new(0, 70, 0, 30)
+Support.BackgroundColor3 = Color3.new(0, 0.0784314, 0.196078)
+Support.BorderSizePixel = 0
+Support.BorderColor3 = Color3.new(0, 0, 0)
+Support.AnchorPoint = Vector2.new(1, 0)
+Support.Text = "Support: off"
+Support.TextColor3 = Color3.new(1, 1, 1)
+Support.TextSize = 14
+Support.FontFace = Font.new("rbxasset://fonts/families/Fondamento.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
+Support.TextScaled = true
+Support.TextWrapped = true
+Support.Parent = Main
+
 local SelectTeamFrame = Instance.new("Frame")
 SelectTeamFrame.Name = "SelectTeamFrame"
 SelectTeamFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -534,6 +550,14 @@ local selectedKey = nil
 local currentTarget = nil
 local aimMode = "free" -- free / obscure / dis free / dis obscure
 
+local SupportButton = Main:WaitForChild("Support")
+local supportEnabled = false
+local supportLoaded = false
+
+local SupportGames = {
+	[3317064564] = "https://raw.githubusercontent.com/HAPPY-script/Aimbot/refs/heads/main/Centaura_Support.lua",
+}
+
 local autoClickEnabled = false
 local autoClickMode = "Spam" -- "Spam" / "Hold"
 local autoClickDownAt = 0
@@ -587,6 +611,28 @@ local NoTeamTemplate = TeamScroll and TeamScroll:WaitForChild("No team")
 
 local crosshairGui
 
+local function tween(obj, time, props)
+	local t = TweenService:Create(obj, TweenInfo.new(time, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), props)
+	t:Play()
+	return t
+end
+
+local function UpdateSupportText(state)
+	SupportButton.Text = state and "Support: on" or "Support: off"
+
+	tween(
+		SupportButton,
+		0.25,
+		{
+			TextColor3 = Color3.new(1,1,1)
+		}
+	)
+end
+
+local function GetSupportURL()
+	return SupportGames[game.GameId]
+end
+
 local function HideObstacleLines()
 	for _, line in pairs(greenLines) do
 		if line then
@@ -617,12 +663,6 @@ local function shouldIncludePlayer(otherPlayer)
 	end
 
 	return true
-end
-
-local function tween(obj, time, props)
-	local t = TweenService:Create(obj, TweenInfo.new(time, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), props)
-	t:Play()
-	return t
 end
 
 local function Cleanup()
@@ -1149,6 +1189,21 @@ local function UpdateAutoClick(target)
 		end
 	else
 		if isAiming then
+
+            if supportEnabled
+                and autoClickMode == "Spam"
+                and (aimMode == "obscure" or aimMode == "dis obscure")
+                and target
+            then
+
+                if _G.SupportModeBot == false
+                    or _G.SupportModeBot == nil
+                then
+                    _G.SupportModeBot = target
+                end
+
+            end
+
 			if tick() - lastClick >= clickDelay then
 				lastClick = tick()
 	
@@ -1353,7 +1408,63 @@ local function bindUI()
             end
         end
     end)
-	
+
+    UpdateSupportText(false)
+
+    SupportButton.MouseButton1Click:Connect(function()
+
+        if supportEnabled then
+            supportEnabled = false
+            UpdateSupportText(false)
+            return
+        end
+
+        local url = GetSupportURL()
+
+        if not url then
+
+            tween(
+                SupportButton,
+                0.25,
+                {
+                    TextColor3 = Color3.fromRGB(255,0,0)
+                }
+            )
+
+            task.delay(1,function()
+
+                if not supportEnabled then
+
+                    tween(
+                        SupportButton,
+                        0.25,
+                        {
+                            TextColor3 = Color3.new(1,1,1)
+                        }
+                    )
+
+                end
+
+            end)
+
+            return
+        end
+
+        supportEnabled = true
+        UpdateSupportText(true)
+
+        if not supportLoaded then
+            supportLoaded = true
+
+            task.spawn(function()
+                pcall(function()
+                    loadstring(game:HttpGet(url))()
+                end)
+            end)
+        end
+
+    end)
+
 	setToggleVisual(false)
 	setToggleAutoVisual(false)
 	updateModeText()
