@@ -382,6 +382,19 @@ Support.TextScaled = true
 Support.TextWrapped = true
 Support.Parent = Main
 
+local WhiteFrame3 = Instance.new("Frame")
+WhiteFrame3.Name = "WhiteFrame"
+WhiteFrame3.Position = UDim2.new(0, 0, 0, 110)
+WhiteFrame3.Size = UDim2.new(0, 70, 0, 30)
+WhiteFrame3.BackgroundColor3 = Color3.new(1, 1, 1)
+WhiteFrame3.BackgroundTransparency = 1
+WhiteFrame3.BorderSizePixel = 0
+WhiteFrame3.BorderColor3 = Color3.new(0, 0, 0)
+WhiteFrame3.ZIndex = 3
+WhiteFrame3.AnchorPoint = Vector2.new(1, 0)
+WhiteFrame3.Transparency = 1
+WhiteFrame3.Parent = Main
+
 local SelectTeamFrame = Instance.new("Frame")
 SelectTeamFrame.Name = "SelectTeamFrame"
 SelectTeamFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -447,16 +460,16 @@ Title2.TextWrapped = true
 Title2.TextXAlignment = Enum.TextXAlignment.Left
 Title2.Parent = SelectTeamFrame
 
-local WhiteFrame3 = Instance.new("Frame")
-WhiteFrame3.Name = "WhiteFrame"
-WhiteFrame3.Size = UDim2.new(1, 0, 1, 0)
-WhiteFrame3.BackgroundColor3 = Color3.new(1, 1, 1)
-WhiteFrame3.BackgroundTransparency = 1
-WhiteFrame3.BorderSizePixel = 0
-WhiteFrame3.BorderColor3 = Color3.new(0, 0, 0)
-WhiteFrame3.ZIndex = 3
-WhiteFrame3.Transparency = 1
-WhiteFrame3.Parent = SelectTeamFrame
+local WhiteFrame4 = Instance.new("Frame")
+WhiteFrame4.Name = "WhiteFrame"
+WhiteFrame4.Size = UDim2.new(1, 0, 1, 0)
+WhiteFrame4.BackgroundColor3 = Color3.new(1, 1, 1)
+WhiteFrame4.BackgroundTransparency = 1
+WhiteFrame4.BorderSizePixel = 0
+WhiteFrame4.BorderColor3 = Color3.new(0, 0, 0)
+WhiteFrame4.ZIndex = 3
+WhiteFrame4.Transparency = 1
+WhiteFrame4.Parent = SelectTeamFrame
 
 local ScrollingFrame = Instance.new("ScrollingFrame")
 ScrollingFrame.Name = "ScrollingFrame"
