@@ -528,6 +528,8 @@ local crosshairConnection
 
 local selectedTeam = nil
 local silentAimEnabled = false
+local rayEnabled = true
+local RayButton = Main:WaitForChild("Ray")
 local selectedKey = nil
 local currentTarget = nil
 local aimMode = "free" -- free / obscure / dis free / dis obscure
@@ -554,8 +556,20 @@ local SelectTeamFrame = uiRoot:WaitForChild("SelectTeamFrame")
 local CloseButton = Main:WaitForChild("Close")
 local MiniButton = Main:WaitForChild("Mini")
 
-local MainWhiteFrame = Main:WaitForChild("WhiteFrame")
-local SelectWhiteFrame = SelectTeamFrame:WaitForChild("WhiteFrame")
+local MainWhiteFrames = {}
+local SelectWhiteFrames = {}
+
+for _,v in ipairs(Main:GetChildren()) do
+	if v.Name == "WhiteFrame" and v:IsA("Frame") then
+		table.insert(MainWhiteFrames, v)
+	end
+end
+
+for _,v in ipairs(SelectTeamFrame:GetChildren()) do
+	if v.Name == "WhiteFrame" and v:IsA("Frame") then
+		table.insert(SelectWhiteFrames, v)
+	end
+end
 
 local ToggleButton = Main:WaitForChild("Toggle")
 local ToggleText = ToggleButton:WaitForChild("Text")
@@ -749,9 +763,32 @@ MiniButton.MouseButton1Click:Connect(function()
 end)
 
 local function fadeWhiteSync(to, time)
-	local t1 = tween(MainWhiteFrame, time, {BackgroundTransparency = to})
-	local t2 = tween(SelectWhiteFrame, time, {BackgroundTransparency = to})
-	t1.Completed:Wait()
+
+	local firstTween
+
+	for _,frame in ipairs(MainWhiteFrames) do
+		local tw = tween(frame, time, {
+			BackgroundTransparency = to
+		})
+
+		if not firstTween then
+			firstTween = tw
+		end
+	end
+
+	for _,frame in ipairs(SelectWhiteFrames) do
+		local tw = tween(frame, time, {
+			BackgroundTransparency = to
+		})
+
+		if not firstTween then
+			firstTween = tw
+		end
+	end
+
+	if firstTween then
+		firstTween.Completed:Wait()
+	end
 end
 
 local function fadeSwapText(obj, newText, totalTime)
@@ -841,11 +878,15 @@ local function openSelectTeamFrame()
 	switching = true
 
 	-- BẮT BUỘC bật lên
-	MainWhiteFrame.Visible = true
-	SelectWhiteFrame.Visible = true
-
-	MainWhiteFrame.BackgroundTransparency = 1
-	SelectWhiteFrame.BackgroundTransparency = 1
+	for _,v in ipairs(MainWhiteFrames) do
+		v.Visible = true
+		v.BackgroundTransparency = 1
+	end
+	
+	for _,v in ipairs(SelectWhiteFrames) do
+		v.Visible = true
+		v.BackgroundTransparency = 1
+	end
 
 	-- Fade IN (0 → trắng)
 	fadeWhiteSync(0, 0.25)
@@ -865,11 +906,15 @@ local function returnToMainFrame()
 	if switching then return end
 	switching = true
 
-	MainWhiteFrame.Visible = true
-	SelectWhiteFrame.Visible = true
-
-	MainWhiteFrame.BackgroundTransparency = 1
-	SelectWhiteFrame.BackgroundTransparency = 1
+	for _,v in ipairs(MainWhiteFrames) do
+		v.Visible = true
+		v.BackgroundTransparency = 1
+	end
+	
+	for _,v in ipairs(SelectWhiteFrames) do
+		v.Visible = true
+		v.BackgroundTransparency = 1
+	end
 
 	-- Fade IN
 	fadeWhiteSync(0, 0.25)
@@ -955,6 +1000,11 @@ local function IsHeadVisible(character, head)
 end
 
 local function UpdateObstacleLine()
+	if not rayEnabled then
+		HideObstacleLines()
+		return
+	end
+	
 	if not silentAimEnabled then
 		HideObstacleLines()
 		return
@@ -1268,7 +1318,30 @@ local function beginKeySelect()
 	end)
 end
 
+local function UpdateRayButton()
+	tween(
+		RayButton,
+		0.25,
+		{
+			TextColor3 = rayEnabled
+				and Color3.new(1,1,1)
+				or Color3.fromRGB(255,0,0)
+		}
+	)
+end
+
 local function bindUI()
+	UpdateRayButton()
+	
+	RayButton.MouseButton1Click:Connect(function()
+		rayEnabled = not rayEnabled
+		UpdateRayButton()
+	
+		if not rayEnabled then
+			HideObstacleLines()
+		end
+	end)
+	
 	setToggleVisual(false)
 	setToggleAutoVisual(false)
 	updateModeText()
@@ -1499,12 +1572,18 @@ local function bindUI()
     mainConnection = RunService.RenderStepped:Connect(function()
         local now = tick()
 
-        if silentAimEnabled and now - lastESPUpdate >= ESP_RATE then
-            lastESPUpdate = now
-            UpdateObstacleLine()
-        elseif not silentAimEnabled then
-            HideObstacleLines()
-        end
+		if rayEnabled then
+		
+			if silentAimEnabled and now - lastESPUpdate >= ESP_RATE then
+				lastESPUpdate = now
+				UpdateObstacleLine()
+			elseif not silentAimEnabled then
+				HideObstacleLines()
+			end
+		
+		else
+			HideObstacleLines()
+		end
 
         currentTarget = GetClosestTarget()
         local isAiming = silentAimEnabled and isKeyHeld and currentTarget ~= nil
