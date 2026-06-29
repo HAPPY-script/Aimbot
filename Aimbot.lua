@@ -584,6 +584,17 @@ local TweenService = game:GetService("TweenService")
 
 local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
 
+local loaded = false
+local function loadMobileSystem()
+	if loaded then return end
+	loaded = true
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/HAPPY-script/Aimbot/refs/heads/main/ButtonKey_system.lua"))()
+end
+
+if isMobile then
+	loadMobileSystem()
+end
+
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
 local playerGui = player:WaitForChild("PlayerGui")
