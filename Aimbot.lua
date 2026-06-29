@@ -395,6 +395,52 @@ WhiteFrame3.AnchorPoint = Vector2.new(1, 0)
 WhiteFrame3.Transparency = 1
 WhiteFrame3.Parent = Main
 
+local SelectStyleFrame = Instance.new("Frame")
+SelectStyleFrame.Name = "SelectStyleFrame"
+SelectStyleFrame.Position = UDim2.new(0.4, 0, 0.35, 0)
+SelectStyleFrame.Size = UDim2.new(0.6, 0, 0.1, 0)
+SelectStyleFrame.BackgroundColor3 = Color3.new(1, 1, 1)
+SelectStyleFrame.BackgroundTransparency = 1
+SelectStyleFrame.BorderSizePixel = 0
+SelectStyleFrame.BorderColor3 = Color3.new(0, 0, 0)
+SelectStyleFrame.Visible = false
+SelectStyleFrame.Transparency = 1
+SelectStyleFrame.Parent = Main
+
+local SelectButton = Instance.new("TextButton")
+SelectButton.Name = "SelectButton"
+SelectButton.Size = UDim2.new(0.5, 0, 1, 0)
+SelectButton.BackgroundColor3 = Color3.new(1, 1, 1)
+SelectButton.BackgroundTransparency = 1
+SelectButton.BorderSizePixel = 0
+SelectButton.BorderColor3 = Color3.new(0, 0, 0)
+SelectButton.Transparency = 1
+SelectButton.Text = "Select Button"
+SelectButton.TextColor3 = Color3.new(1, 1, 1)
+SelectButton.TextSize = 14
+SelectButton.FontFace = Font.new("rbxasset://fonts/families/Fondamento.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
+SelectButton.TextScaled = true
+SelectButton.TextWrapped = true
+SelectButton.Parent = SelectStyleFrame
+
+local CreateButton = Instance.new("TextButton")
+CreateButton.Name = "CreateButton"
+CreateButton.Position = UDim2.new(1, 0, 0, 0)
+CreateButton.Size = UDim2.new(0.5, 0, 1, 0)
+CreateButton.BackgroundColor3 = Color3.new(1, 1, 1)
+CreateButton.BackgroundTransparency = 1
+CreateButton.BorderSizePixel = 0
+CreateButton.BorderColor3 = Color3.new(0, 0, 0)
+CreateButton.AnchorPoint = Vector2.new(1, 0)
+CreateButton.Transparency = 1
+CreateButton.Text = "Create Button"
+CreateButton.TextColor3 = Color3.new(1, 1, 1)
+CreateButton.TextSize = 14
+CreateButton.FontFace = Font.new("rbxasset://fonts/families/Fondamento.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
+CreateButton.TextScaled = true
+CreateButton.TextWrapped = true
+CreateButton.Parent = SelectStyleFrame
+
 local SelectTeamFrame = Instance.new("Frame")
 SelectTeamFrame.Name = "SelectTeamFrame"
 SelectTeamFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -536,6 +582,8 @@ local VirtualUser = game:GetService("VirtualUser")
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local TweenService = game:GetService("TweenService")
 
+local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+
 local player = Players.LocalPlayer
 local camera = workspace.CurrentCamera
 local playerGui = player:WaitForChild("PlayerGui")
@@ -628,6 +676,37 @@ local function tween(obj, time, props)
 	local t = TweenService:Create(obj, TweenInfo.new(time, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), props)
 	t:Play()
 	return t
+end
+
+local function initMobileUI()
+	if not isMobile then return end
+
+	-- fade SelectKey + disable
+	SelectKeyButton.Active = false
+
+	tween(SelectKeyButton, 0.3, {
+		TextTransparency = 1
+	})
+
+	task.delay(0.3, function()
+		SelectKeyButton.Visible = false
+	end)
+
+	-- show SelectStyleFrame
+	SelectStyleFrame.Visible = true
+	SelectStyleFrame.BackgroundTransparency = 1
+
+	tween(SelectStyleFrame, 0.3, {
+		BackgroundTransparency = 0
+	})
+
+	-- fade in 2 buttons
+	for _, btn in ipairs({SelectButton, CreateButton}) do
+		btn.TextTransparency = 1
+		tween(btn, 0.3, {
+			TextTransparency = 0
+		})
+	end
 end
 
 local function UpdateSupportText(state)
@@ -1406,6 +1485,30 @@ local function UpdateRayButton()
 	)
 end
 
+local function bindButtonKey()
+	task.spawn(function()
+		while true do
+			task.wait()
+
+			if _G.ButtonKey then
+				local key = _G.ButtonKey
+
+				-- giống KeyHeld logic
+				if typeof(key) == "EnumItem" then
+
+					-- simulate press
+					isKeyHeld = true
+
+					-- optional: auto release safety
+					task.delay(0.15, function()
+						isKeyHeld = false
+					end)
+				end
+			end
+		end
+	end)
+end
+
 local function bindUI()
 	UpdateRayButton()
 	
@@ -1743,6 +1846,44 @@ local function bindUI()
 	end)
 end
 
+local function closeSelectStyle()
+	for _, btn in ipairs({SelectButton, CreateButton}) do
+		tween(btn, 0.25, {TextTransparency = 1})
+	end
+
+	task.delay(0.25, function()
+		SelectStyleFrame.Visible = false
+	end)
+end
+
+SelectButton.MouseButton1Click:Connect(function()
+	_G.SelectButton = "waiting"
+	_G.CreateButton = "none"
+
+	closeSelectStyle()
+
+	task.spawn(function()
+		repeat task.wait() until _G.ButtonKey
+		updateSelectKeyText(_G.ButtonKey.Name or "None")
+	end)
+end)
+
+CreateButton.MouseButton1Click:Connect(function()
+	_G.SelectButton = "none"
+	_G.CreateButton = "waiting"
+
+	closeSelectStyle()
+
+	task.spawn(function()
+		repeat task.wait() until _G.ButtonKey
+		updateSelectKeyText(_G.ButtonKey.Name or "None")
+	end)
+end)
+
+-- PC
 bindUI()
 frame = Main
 frame.Visible = true
+-- Mobile
+initMobileUI()
+bindButtonKey()
