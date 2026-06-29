@@ -106,6 +106,8 @@ end
 -- STATE
 local mode = "idle" -- idle / select / create
 local selectedObject = nil
+local buttonKeySource = nil
+-- "create" / "select" / nil
 
 _G.ButtonKey = false
 
@@ -137,6 +139,12 @@ local function stopSelectMode()
 
 	_G.SelectButton = false
 	_G.CreateButton = false
+
+	-- clear key khi thoát select
+	if buttonKeySource == "select" then
+		_G.ButtonKey = false
+		buttonKeySource = nil
+	end
 end
 
 ------------------------------------------------
@@ -226,6 +234,7 @@ local function startCreateMode()
 				AimbotGui.Enabled = true
 
 				_G.ButtonKey = resolveKey(buttonKeyObj)
+				buttonKeySource = "create"
 
 				stopCreateMode()
 			end)
@@ -241,6 +250,60 @@ function stopCreateMode()
 	mode = "idle"
 	_G.SelectButton = false
 	_G.CreateButton = false
+
+	-- clear UI state
+	local gui = playerGui:FindFirstChild("CreateButtonScreen")
+	if gui then
+		local btn = gui:FindFirstChild("ButtonKey", true)
+		if btn then
+			btn.Visible = false
+		end
+	end
+
+	if buttonKeySource == "create" then
+		_G.ButtonKey = false
+		buttonKeySource = nil
+	end
+end
+
+local function cleanupButtonKeyIfInvalid()
+	if not _G.ButtonKey then return end
+
+	-- CASE 1: đang ở select nhưng key đến từ create
+	if buttonKeySource == "create" and _G.SelectButton == "waiting" then
+		return
+	end
+
+	-- CASE 2: đang ở create nhưng key từ select
+	if buttonKeySource == "select" and _G.CreateButton == "waiting" then
+		return
+	end
+
+	-- CASE 3: chuyển mode → reset UI create screen
+	if buttonKeySource == "create" and mode ~= "create" then
+
+		local gui = playerGui:FindFirstChild("CreateButtonScreen")
+		if gui then
+			local btn = gui:FindFirstChild("ButtonKey", true)
+			if btn then
+				btn.Visible = false
+			end
+
+			local black = gui:FindFirstChild("BlackFrame")
+			if black then
+				black.Visible = false
+			end
+		end
+
+		_G.ButtonKey = false
+		buttonKeySource = nil
+	end
+
+	-- CASE 4: chuyển ra ngoài select → clear
+	if buttonKeySource == "select" and mode ~= "select" then
+		_G.ButtonKey = false
+		buttonKeySource = nil
+	end
 end
 
 ------------------------------------------------
@@ -262,6 +325,7 @@ UserInputService.InputBegan:Connect(function(input, gp)
 			if not isFromAimbotGui(obj) then
 				selectedObject = obj
 				_G.ButtonKey = resolveKey(obj)
+				buttonKeySource = "select"
 
 				stopSelectMode()
 				return
@@ -278,6 +342,8 @@ end)
 -- WATCH STATE LOOP
 ------------------------------------------------
 RunService.RenderStepped:Connect(function()
+
+	cleanupButtonKeyIfInvalid()
 
 	-- WAIT SELECT
 	if _G.SelectButton == "waiting" and mode ~= "select" then
